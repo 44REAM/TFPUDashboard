@@ -1,11 +1,11 @@
 import plotly.express as px
 import streamlit as st
 import pandas as pd
+from PIL import Image
 import json
 
+title_image = Image.open("data/logo.png")
 
-st.header("สหภาพแพทย์ผู้ปฏิบัติงาน")
-st.subheader("Thai Frontline Physician Union (TFPU)")
 df = pd.read_csv('data/test.csv')
 df = df.dropna(subset = ['Timestamp'])
 df['สถานพยาบาลที่ท่านทำงานอยู่ในสังกัดใด'][~df['สถานพยาบาลที่ท่านทำงานอยู่ในสังกัดใด'].isin(['ทั้งสองที่', 'รัฐ', 'เอกชน'])] = 'อื่นๆ'
@@ -38,8 +38,12 @@ fig = px.choropleth(all_provinces, geojson=geo,
                            scope="asia",
                            projection="mercator",
                            labels={'count':'number of worker'},
+                    template = 'plotly_dark'
                           )
 fig.update_geos(fitbounds = 'locations', visible =False)
+fig.update_layout( 
+    xaxis_fixedrange = True,
+    yaxis_fixedrange = True,dragmode=False , coloraxis_showscale=False)
 
 hos_type_fig = px.histogram(df, x="สถานพยาบาลที่ท่านทำงานอยู่ในสังกัดใด",
                    labels={
@@ -58,13 +62,54 @@ job_fig = px.histogram(df, x="ตำแหน่งงานในปัจจ�
                  },template = 'plotly_dark', color_discrete_sequence=['indianred'])
 job_fig.update_layout( 
     yaxis_title="จำนวนคน", 
-    title = "ตำแหน้งงาน", 
+    title = "ตำแหน่งงาน", 
     xaxis_fixedrange = True,
     yaxis_fixedrange = True)
 
-tab1, tab2 = st.tabs(["โรงพยาบาลที่สังกัด", "ตำแหน่งงานในปัจจุบัน"])
-with tab1:
+special_fig = px.histogram(df, x="ความเฉพาะทาง (วุฒิบัตร)",
+                   labels={
+                     "ความเฉพาะทาง (วุฒิบัตร)": "ความเฉพาะทาง (วุฒิบัตร)"
+                 },template = 'plotly_dark', color_discrete_sequence=['indianred'])
+special_fig.update_layout( 
+    yaxis_title="จำนวนคน", 
+    title = "ความเฉพาะทาง (วุฒิบัตร)", 
+    xaxis_fixedrange = True,
+    yaxis_fixedrange = True)
+
+t1, t2 = st.columns((1,8))
+t1.image(title_image, width = 75)
+
+t2.header("สหภาพแพทย์ผู้ปฏิบัติงาน")
+st.subheader("Thai Frontline Physician Union (TFPU)")
+tabs = st.tabs(["โรงพยาบาลที่สังกัด", "ตำแหน่งงานในปัจจุบัน", "ความเฉพาะทาง", "จังหวัด"])
+with tabs[0]:
     st.plotly_chart(hos_type_fig, theme="streamlit", use_container_width=True)
-with tab2:
+with tabs[1]:
     st.plotly_chart(job_fig, theme="streamlit", use_container_width=True)
 
+with tabs[2]:
+    st.plotly_chart(special_fig, theme="streamlit", use_container_width=True)
+
+with tabs[3]:
+    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+        </style>
+        """
+st.metric(label = 'สมาชิกคนทำงาน', value = f"{int(all_provinces['count'].sum())} คน")
+
+st.markdown(hide_menu_style, unsafe_allow_html=True)
+st.markdown("---")
+
+st.markdown(
+    """<font size='2'>Facebook page: [สหภาพแพทย์ผู้ปฏิบัติงาน](https://www.facebook.com/ThaiFrontlinePhysicianUnion)</font>""",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """<font size='2'>Twitter: [สหภาพแพทย์ผู้ปฏิบัติงาน](https://twitter.com/TFPU_official)</font>""",
+    unsafe_allow_html=True
+)

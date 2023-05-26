@@ -55,5 +55,5 @@ if __name__ == '__main__':
     # Pass: spreadsheet_id, and range_name
     data=get_values("1k231VS8qEGrymQkh-jF15H7QstEJ73teyi2JMt96c9U", "Form Responses 1")
     df = pd.DataFrame(data[1:], columns=data[0])
-    df.to_csv('test.csv',index = False,encoding='utf-8-sig')
+    df.to_csv('data/test.csv',index = False,encoding='utf-8-sig')
     print(df)
