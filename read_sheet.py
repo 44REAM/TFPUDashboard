@@ -37,7 +37,7 @@ def get_values(spreadsheet_id, range_name):
 
     # pylint: disable=maybe-no-member
     try:
-        service = build('sheets', 'v4', credentials=creds)
+        service = build('sheets', 'v4', credentials = creds)
 
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id, range=range_name).execute()

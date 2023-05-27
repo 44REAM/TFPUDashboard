@@ -6,9 +6,10 @@ import json
 
 import bokeh
 from bokeh.plotting import figure
-from bokeh.models import GeoJSONDataSource, LinearColorMapper, ColorBar, HoverTool
+from bokeh.models import GeoJSONDataSource, LinearColorMapper, ColorBar, HoverTool, LogColorMapper
 from bokeh.palettes import brewer
 import geopandas as gp
+import numpy as np
 
 
 df = pd.read_csv('data/test.csv')
@@ -28,30 +29,39 @@ count_provinces.columns = ['name', 'count']
 
 gdf = gdf.merge(count_provinces, how = 'left', left_on= ['pro_th'], right_on=['name'])
 gdf.fillna(0, inplace=True)
+gdf['log_count'] = np.log(gdf['count']+0.0001)
 
 merged_json = json.loads(gdf.to_json())
 
 #Convert to str like object
 json_data = json.dumps(merged_json)
 geosource = GeoJSONDataSource(geojson = json_data)
+count_table = gdf[['name', 'count']].sort_values(by = ['count'], ascending = False).head(5).rename(columns = {'name': 'จังหวัด','count': 'จำนวนสมาชิก'})
+count_table = count_table.set_index('จังหวัด')
+count_table['จำนวนสมาชิก'] = count_table['จำนวนสมาชิก'].astype(int)
 
 def get_map(gdf, geosource):
     palette =  bokeh.palettes.Reds[256]
     #Reverse color order so that dark blue is highest obesity.
     palette = palette[::-1]
 
-    color_mapper = LinearColorMapper(palette = palette, low=gdf['count'].min(), high = gdf['count'].max(), nan_color = '#d9d9d9')
-    hover = HoverTool(tooltips = [ ('จังหวัด','@pro_th'),('คนทำงาน','@count')])
-    color_bar = ColorBar(color_mapper=color_mapper, label_standoff=8,width = 500, height = 20,
+    color_mapper = LinearColorMapper(palette = palette, low= 0, high = gdf['log_count'].max(), nan_color = '#d9d9d9')
+    log_color_mapper = LogColorMapper(palette = palette, low= 0, high = gdf['count'].max(), nan_color = '#d9d9d9')
+
+    color_bar = ColorBar(color_mapper=log_color_mapper, label_standoff=8,width = 500, height = 20,
                 border_line_color=None,location = (0,0), orientation = 'horizontal')
-    p = figure( height = 1200 , toolbar_location = None, tools = [hover])
+
+    hover = HoverTool(tooltips = [ ('จังหวัด','@pro_th'),('คนทำงาน','@count')])
+
+    p = figure( height = 1000 , toolbar_location = None, tools = [hover], x_axis_type='linear')
     p.xgrid.grid_line_color = None
     p.ygrid.grid_line_color = None
     p.axis.visible = False
-    p.patches('xs','ys', source = geosource, fill_color = {'field' :'count', 'transform' : color_mapper},
+    p.patches('xs','ys', source = geosource, fill_color = {'field' :'log_count', 'transform' : color_mapper},
             line_color = 'black', line_width = 0.1, fill_alpha = 1)
 
     p.add_layout(color_bar, 'below')
+
     return p
 
 p = get_map(gdf, geosource)
@@ -121,6 +131,7 @@ with tabs[2]:
 
 with tabs[3]:
     st.bokeh_chart(p, use_container_width=False)
+    st.table(count_table)
 
 hide_menu_style = """
         <style>
